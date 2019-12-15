@@ -69,33 +69,38 @@ func (Service *Service) Start() ([]byte, error) {
 		return []byte{}, e
 	}
 
+	var resultOutput string
+
 	if s && !Service.HostConfig.AutoRemove && !Service.Discrete {
-		fmt.Printf("Already running %v\n", Service.Name)
+		if !Service.Discrete {
+			fmt.Printf("Already running %v\n", Service.Name)
+		}
 		return []byte{}, nil
 	}
 
 	if !s || Service.HostConfig.AutoRemove {
 
-		output, err := DockerRun(Service)
+		output, _ := DockerRun(Service)
 
 		if Service.Output {
-			fmt.Println(strings.Trim(string(output), "\n"))
+			resultOutput = fmt.Sprint(strings.Trim(string(output), "\n"))
 		}
 
 		if c, _ := GetDetails(Service); c.ID != "" {
 			if !Service.HostConfig.AutoRemove || !Service.Discrete {
 				fmt.Printf("Successfully started %v\n", Service.Name)
 			}
-			return output, nil
 		}
-		if err != nil {
-			return []byte{}, err
-		}
+
 	} else {
 		fmt.Printf("Failed to run %v.\n", Service.Name)
 	}
 
-	return []byte{}, nil
+	if Service.Group == "addkeys" || Service.Group == "showkeys" {
+		Service.Clean()
+	}
+
+	return []byte(resultOutput), nil
 }
 
 func (Service *Service) Status() (bool, error) {
